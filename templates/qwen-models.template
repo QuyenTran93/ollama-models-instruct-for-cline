@@ -1,0 +1,102 @@
+TEMPLATE """
+{{- /* Initial system message with core instructions */ -}}
+{{- if .Messages }}
+{{- if or .System .Tools }}
+<|im_start|>system
+{{- if .System }}
+{{ .System }}
+{{- end }}
+
+{{- if .Tools }}
+# Tools and XML Schema
+You have access to the following tools. Each tool must be used according to this XML schema:
+
+<tools>
+{{- range .Tools }}
+{{ .Function }}
+{{- end }}
+</tools>
+
+## Tool Use Format
+1. Think about the approach in <thinking> tags
+2. Call tool using XML format:
+   <tool_name>
+     <param_name>value</param_name>
+   </tool_name>
+3. Process tool response from:
+   <tool_response>result</tool_response>
+{{- end }}
+<|im_end|>
+{{- end }}
+
+{{- /* Message handling loop */ -}}
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 }}
+
+{{- /* User messages */ -}}
+{{- if eq .Role "user" }}
+<|im_start|>user
+{{ .Content }}
+<|im_end|>
+
+{{- /* Assistant messages */ -}}
+{{- else if eq .Role "assistant" }}
+<|im_start|>assistant
+{{- if .Content }}
+{{ .Content }}
+{{- else if .ToolCalls }}
+{{- range .ToolCalls }}
+<thinking>
+[Analysis of current state and next steps]
+</thinking>
+
+<{{ .Function.Name }}>
+{{- range $key, $value := .Function.Arguments }}
+<{{ $key }}>{{ $value }}</{{ $key }}>
+{{- end }}
+</{{ .Function.Name }}>
+{{- end }}
+{{- end }}
+<|im_end|>
+
+{{- /* Tool response handling */ -}}
+{{- else if eq .Role "tool" }}
+<|im_start|>tool
+<tool_response>
+{{ .Content }}
+</tool_response>
+<|im_end|>
+{{- end }}
+
+{{- /* Prepare for next assistant response if needed */ -}}
+{{- if and (ne .Role "assistant") $last }}
+<|im_start|>assistant
+{{- end }}
+{{- end }}
+
+{{- /* Handle single message case */ -}}
+{{- else }}
+{{- if .System }}
+<|im_start|>system
+{{ .System }}
+<|im_end|>
+{{- end }}
+
+{{- if .Prompt }}
+<|im_start|>user
+{{ .Prompt }}
+<|im_end|>
+{{- end }}
+<|im_start|>assistant
+{{- end }}
+{{ .Response }}<|im_end|>"""
+
+PARAMETER num_ctx 32768
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>
+PARAMETER temperature 0.1
+PARAMETER top_p 0.7
+PARAMETER repetition_penalty 1.1
+PARAMETER max_tokens 2048
+PARAMETER presence_penalty 1.0
+PARAMETER frequency_penalty 1.0

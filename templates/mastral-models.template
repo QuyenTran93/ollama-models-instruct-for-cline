@@ -1,0 +1,91 @@
+TEMPLATE """
+{{- /* Initial system message with core instructions */ -}}
+{{- if .Messages }}
+{{- if or .System .Tools }}
+<s>[INST] System:
+{{- if .System }}
+{{ .System }}
+{{- end }}
+
+{{- if .Tools }}
+# Tools and XML Schema
+You have access to the following tools. Each tool must be used according to this XML schema:
+
+<tools>
+{{- range .Tools }}
+{{ .Function }}
+{{- end }}
+</tools>
+
+## Tool Use Format
+1. Think about the approach in <thinking> tags
+2. Call tool using XML format:
+   <tool_name>
+     <param_name>value</param_name>
+   </tool_name>
+3. Process tool response from:
+   <tool_response>result</tool_response>
+{{- end }}
+[/INST]
+{{- end }}
+
+{{- /* Message handling loop */ -}}
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 }}
+
+{{- /* User messages */ -}}
+{{- if eq .Role "user" }}
+[INST] {{ .Content }} [/INST]
+
+{{- /* Assistant messages */ -}}
+{{- else if eq .Role "assistant" }}
+{{- if .Content }}
+{{ .Content }}
+{{- else if .ToolCalls }}
+{{- range .ToolCalls }}
+<thinking>
+[Analysis of current state and next steps]
+</thinking>
+
+<{{ .Function.Name }}>
+{{- range $key, $value := .Function.Arguments }}
+<{{ $key }}>{{ $value }}</{{ $key }}>
+{{- end }}
+</{{ .Function.Name }}>
+{{- end }}
+{{- end }}
+
+{{- /* Tool response handling */ -}}
+{{- else if eq .Role "tool" }}
+[INST] <tool_response>
+{{ .Content }}
+</tool_response> [/INST]
+{{- end }}
+
+{{- /* Prepare for next assistant response if needed */ -}}
+{{- if and (ne .Role "assistant") $last }}
+{{- end }}
+{{- end }}
+
+{{- /* Handle single message case */ -}}
+{{- else }}
+{{- if .System }}
+<s>[INST] System:
+{{ .System }} [/INST]
+{{- end }}
+
+{{- if .Prompt }}
+[INST] {{ .Prompt }} [/INST]
+{{- end }}
+{{- end }}
+{{ .Response }}</s>"""
+
+PARAMETER num_ctx 32768
+PARAMETER stop </s>
+PARAMETER stop [INST]
+PARAMETER stop [/INST]
+PARAMETER temperature 0.1
+PARAMETER repeat_penalty 1.1
+PARAMETER repeat_last_n 64
+PARAMETER top_k 40
+PARAMETER top_p 0.9
