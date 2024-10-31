@@ -1,16 +1,14 @@
 TEMPLATE """
-{{- /* Initial system message with core instructions */ -}}
-{{- if .Messages }}
+{{- /* Core system message */ -}}
 {{- if or .System .Tools }}
-<bos>
-<system>
+<|im_start|>system
 {{- if .System }}
 {{ .System }}
 {{- end }}
 
 {{- if .Tools }}
 # Tools and XML Schema
-You have access to the following tools. Each tool must be used according to this XML schema:
+Available tools are listed below. Use each tool per this XML schema:
 
 <tools>
 {{- range .Tools }}
@@ -19,37 +17,30 @@ You have access to the following tools. Each tool must be used according to this
 </tools>
 
 ## Tool Use Format
-1. Think about the approach in <thinking> tags
-2. Call tool using XML format:
-   <tool_name>
-     <param_name>value</param_name>
-   </tool_name>
-3. Process tool response from:
+1. Plan in <thinking> tags.
+2. Call tool with XML format:
+   <tool_name><param_name>value</param_name></tool_name>
+3. Process tool response:
    <tool_response>result</tool_response>
 {{- end }}
-</system>
+<|im_end|>
+{{- end }}
 
-{{- /* Message handling loop */ -}}
+{{- /* Handle Messages */ -}}
 {{- range $i, $_ := .Messages }}
 {{- $last := eq (len (slice $.Messages $i)) 1 }}
 
-{{- /* User messages */ -}}
 {{- if eq .Role "user" }}
-<user>
+<|im_start|>user
 {{ .Content }}
-</user>
-
-{{- /* Assistant messages */ -}}
+<|im_end|>
 {{- else if eq .Role "assistant" }}
-<assistant>
+<|im_start|>assistant
 {{- if .Content }}
 {{ .Content }}
 {{- else if .ToolCalls }}
 {{- range .ToolCalls }}
-<thinking>
-[Analysis of current state and next steps]
-</thinking>
-
+<thinking>[Analysis and next steps]</thinking>
 <{{ .Function.Name }}>
 {{- range $key, $value := .Function.Arguments }}
 <{{ $key }}>{{ $value }}</{{ $key }}>
@@ -57,51 +48,30 @@ You have access to the following tools. Each tool must be used according to this
 </{{ .Function.Name }}>
 {{- end }}
 {{- end }}
-</assistant>
+{{- if not $last }}<|im_end|>{{- end }}
 
-{{- /* Tool response handling */ -}}
 {{- else if eq .Role "tool" }}
-<user>
-<tool_response>
-{{ .Content }}
-</tool_response>
-</user>
+<|im_start|>user
+<tool_response>{{ .Content }}</tool_response>
+<|im_end|>
 {{- end }}
 
-{{- /* Prepare for next assistant response if needed */ -}}
 {{- if and (ne .Role "assistant") $last }}
-<assistant>
+<|im_start|>assistant
 {{- end }}
 {{- end }}
 
-{{- /* Handle single message case */ -}}
-{{- else }}
-{{- if .System }}
-<bos>
-<system>
-{{ .System }}
-</system>
-{{- end }}
-
-{{- if .Prompt }}
-<user>
-{{ .Prompt }}
-</user>
-{{- end }}
-<assistant>
-{{- end }}
-{{ .Response }}</assistant>
-</bos>"""
+{{- /* Single message handling */ -}}
+{{- if .Response }}
+<|im_start|>assistant
+{{ .Response }}
+<|im_end|>
+{{- end }}"""
 
 PARAMETER num_ctx 32768
-PARAMETER stop <bos>
-PARAMETER stop </bos> 
-PARAMETER stop <system>
-PARAMETER stop </system>
-PARAMETER stop <user>
-PARAMETER stop </user>
-PARAMETER stop <assistant>
-PARAMETER stop </assistant>
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>
+PARAMETER stop <|endoftext|>
 PARAMETER temperature 0.1
 PARAMETER repeat_penalty 1.1
 PARAMETER repeat_last_n 64
