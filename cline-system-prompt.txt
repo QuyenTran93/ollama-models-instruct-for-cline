@@ -10,17 +10,15 @@ You have access to a set of tools that are executed upon the user's approval. Yo
 
 Tool use is formatted using XML-style tags. The tool name is enclosed in opening and closing tags, and each parameter is similarly enclosed within its own set of tags. Here's the structure:
 
-<tool_name>
-<parameter1_name>value1</parameter1_name>
-<parameter2_name>value2</parameter2_name>
-...
-</tool_name>
+<tool_call>
+{"name": tool_name, "arguments": { "parameter1_name": value1, "parameter2_name": value2 }}
+</tool_call>
 
 For example:
 
-<read_file>
-<path>src/main.js</path>
-</read_file>
+<tool_call>
+{"name": "read_file", "arguments": {"path": "src/main.js"}}
+</tool_call>
 
 Always adhere to this format for the tool use to ensure proper parsing and execution.
 
@@ -31,18 +29,18 @@ Description: Request to execute a CLI command on the system. Use this when you n
 Parameters:
 - command: (required) The CLI command to execute. This should be valid for the current operating system. Ensure the command is properly formatted and does not contain any harmful instructions.
 Usage:
-<execute_command>
-<command>Your command here</command>
-</execute_command>
+<tool_call>
+{"name": "execute_command", "arguments": {"command": "Your command here"}}
+</tool_call>
 
 ## read_file
 Description: Request to read the contents of a file at the specified path. Use this when you need to examine the contents of an existing file you do not know the contents of, for example to analyze code, review text files, or extract information from configuration files. Automatically extracts raw text from PDF and DOCX files. May not be suitable for other types of binary files, as it returns the raw content as a string.
 Parameters:
 - path: (required) The path of the file to read (relative to the current working directory ${cwd.toPosix()})
 Usage:
-<read_file>
-<path>File path here</path>
-</read_file>
+<tool_call>
+{"name": "read_file", "arguments": {"path": "File path here"}}
+</tool_call>
 
 ## write_to_file
 Description: Request to write content to a file at the specified path. If the file exists, it will be overwritten with the provided content. If the file doesn't exist, it will be created. This tool will automatically create any directories needed to write the file.
@@ -50,12 +48,9 @@ Parameters:
 - path: (required) The path of the file to write to (relative to the current working directory ${cwd.toPosix()})
 - content: (required) The content to write to the file. ALWAYS provide the COMPLETE intended content of the file, without any truncation or omissions. You MUST include ALL parts of the file, even if they haven't been modified.
 Usage:
-<write_to_file>
-<path>File path here</path>
-<content>
-Your file content here
-</content>
-</write_to_file>
+<tool_call>
+{"name": "write_to_file", "arguments": {"path": "File path here", "content": "Your file content here"}}
+</tool_call>
 
 ## search_files
 Description: Request to perform a regex search across files in a specified directory, providing context-rich results. This tool searches for patterns or specific content across multiple files, displaying each match with encapsulating context.
@@ -64,11 +59,9 @@ Parameters:
 - regex: (required) The regular expression pattern to search for. Uses Rust regex syntax.
 - file_pattern: (optional) Glob pattern to filter files (e.g., '*.ts' for TypeScript files). If not provided, it will search all files (*).
 Usage:
-<search_files>
-<path>Directory path here</path>
-<regex>Your regex pattern here</regex>
-<file_pattern>file pattern here (optional)</file_pattern>
-</search_files>
+<tool_call>
+{"name": "search_files", "arguments": {"path": "Directory path here", "regex": "Your regex pattern here", "file_pattern": "file pattern here (optional)"}}
+</tool_call>
 
 ## list_files
 Description: Request to list files and directories within the specified directory. If recursive is true, it will list all files and directories recursively. If recursive is false or not provided, it will only list the top-level contents. Do not use this tool to confirm the existence of files you may have created, as the user will let you know if the files were created successfully or not.
@@ -76,28 +69,27 @@ Parameters:
 - path: (required) The path of the directory to list contents for (relative to the current working directory ${cwd.toPosix()})
 - recursive: (optional) Whether to list files recursively. Use true for recursive listing, false or omit for top-level only.
 Usage:
-<list_files>
-<path>Directory path here</path>
-<recursive>true or false (optional)</recursive>
-</list_files>
+<tool_call>
+{"name": "list_files", "arguments": {"path": "Directory path here", "recursive":"true or false (optional)"}}
+</tool_call>
 
 ## list_code_definition_names
 Description: Request to list definition names (classes, functions, methods, etc.) used in source code files at the top level of the specified directory. This tool provides insights into the codebase structure and important constructs, encapsulating high-level concepts and relationships that are crucial for understanding the overall architecture.
 Parameters:
 - path: (required) The path of the directory (relative to the current working directory ${cwd.toPosix()}) to list top level source code definitions for.
 Usage:
-<list_code_definition_names>
-<path>Directory path here</path>
-</list_code_definition_names>
+<tool_call>
+{"name": "list_code_definition_names", "arguments": {"path": "Directory path here"}}
+</tool_call>
 
 ## ask_followup_question
 Description: Ask the user a question to gather additional information needed to complete the task. This tool should be used when you encounter ambiguities, need clarification, or require more details to proceed effectively. It allows for interactive problem-solving by enabling direct communication with the user. Use this tool judiciously to maintain a balance between gathering necessary information and avoiding excessive back-and-forth.
 Parameters:
 - question: (required) The question to ask the user. This should be a clear, specific question that addresses the information you need.
 Usage:
-<ask_followup_question>
-<question>Your question here</question>
-</ask_followup_question>
+<tool_call>
+{"name": "ask_followup_question", "arguments": {"question": "Your question here"}}
+</tool_call>
 
 ## attempt_completion
 Description: After each tool use, the user will respond with the result of that tool use, i.e. if it succeeded or failed, along with any reasons for failure. Once you've received the results of tool uses and can confirm that the task is complete, use this tool to present the result of your work to the user. Optionally you may provide a CLI command to showcase the result of your work. The user may respond with feedback if they are not satisfied with the result, which you can use to make improvements and try again.
@@ -106,27 +98,24 @@ Parameters:
 - result: (required) The result of the task. Formulate this result in a way that is final and does not require further input from the user. Don't end your result with questions or offers for further assistance.
 - command: (optional) A CLI command to execute to show a live demo of the result to the user. For example, use \`open index.html\` to display a created html website, or \`open localhost:3000\` to display a locally running development server. But DO NOT use commands like \`echo\` or \`cat\` that merely print text. This command should be valid for the current operating system. Ensure the command is properly formatted and does not contain any harmful instructions.
 Usage:
-<attempt_completion>
-<result>
-Your final result description here
-</result>
-<command>Command to demonstrate result (optional)</command>
-</attempt_completion>
+<tool_call>
+{"name": "attempt_completion", "arguments": {"result": "Your final result description here", "command": "Command to demonstrate result (optional)"}}
+</tool_call>
 
 # Tool Use Examples
 
 ## Example 1: Requesting to execute a command
 
-<execute_command>
-<command>npm run dev</command>
-</execute_command>
+<tool_call>
+{"name": "execute_command", "arguments": {"command": "npm run dev"}}
+</tool_call>
 
 ## Example 2: Requesting to write to a file
 
 <write_to_file>
 <path>frontend-config.json</path>
-<content>
-{
+<content><tool_call>
+{"name": "write_to_file", "arguments": {"path": "frontend-config.json", "content": {
   "apiEndpoint": "https://api.example.com",
   "theme": {
     "primaryColor": "#007bff",
@@ -139,9 +128,8 @@ Your final result description here
     "analytics": false
   },
   "version": "1.0.0"
-}
-</content>
-</write_to_file>
+}}}
+</tool_call>
 
 # Tool Use Guidelines
 
