@@ -13,16 +13,16 @@ You have access to the following tools. Each tool must be used according to this
 
 <tools>
 {{- range .Tools }}
-{{ .Function }}
+{"type": "function", "function": {{ .Function }}}
 {{- end }}
 </tools>
 
 ## Tool Use Format
 1. Think about the approach in <thinking> tags
 2. Call tool using XML format:
-   <tool_name>
-     <param_name>value</param_name>
-   </tool_name>
+<tool_call>
+   {"name": <function-name>, "arguments": <args-json-object>}
+</tool_call>
 3. Process tool response from:
    <tool_response>result</tool_response>
 {{- end }}
@@ -45,7 +45,9 @@ You have access to the following tools. Each tool must be used according to this
 {{- if .Content }}
 {{ .Content }}
 {{- else if .ToolCalls }}
-{{- range .ToolCalls }}
+<tool_call>
+{{ range .ToolCalls }}{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+{{ end }}</tool_call>
 <thinking>
 [Analysis of current state and next steps]
 </thinking>
