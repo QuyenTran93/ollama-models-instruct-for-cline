@@ -45,19 +45,12 @@ You have access to the following tools. Each tool must be used according to this
 {{- if .Content }}
 {{ .Content }}
 {{- else if .ToolCalls }}
-<tool_call>
-{{ range .ToolCalls }}{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
-{{- end }}{{ if not $last }}<|im_end|>
 <thinking>
 [Analysis of current state and next steps]
 </thinking>
-
-<{{ .Function.Name }}>
-{{- range $key, $value := .Function.Arguments }}
-<{{ $key }}>{{ $value }}</{{ $key }}>
-{{- end }}
-</{{ .Function.Name }}>
-{{- end }}
+<tool_call>
+{{ range .ToolCalls }}{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+{{ end }}</tool_call>
 {{- end }}
 {{- if not $last }}<|im_end|>{{- end }}
 
