@@ -21,7 +21,7 @@ You have access to the following tools. Each tool must be used according to this
 1. Think about the approach in <thinking> tags
 2. Call tool using XML format:
 <tool_call>
-   {"name": <tool-name>, "arguments": <args-json-object>}
+   {"name": <function-name>, "arguments": <args-json-object>}
 </tool_call>
 3. Process tool response from:
    <tool_response>result</tool_response>
@@ -45,18 +45,20 @@ You have access to the following tools. Each tool must be used according to this
 {{- if .Content }}
 {{ .Content }}
 {{- else if .ToolCalls }}
+{{- range .ToolCalls }}
 <thinking>
 [Analysis of current state and next steps]
 </thinking>
 <tool_call>
-{{ range .ToolCalls }}{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
-{{ end }}</tool_call>
+{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+</tool_call>
+{{- end }}
 {{- end }}
 {{- if not $last }}<|im_end|>{{- end }}
 
 {{- /* Tool response handling */ -}}
 {{- else if eq .Role "tool" }}
-<|im_start|>tool
+<|im_start|>user
 <tool_response>
 {{ .Content }}
 </tool_response>
@@ -82,7 +84,6 @@ You have access to the following tools. Each tool must be used according to this
 {{ .Prompt }}
 <|im_end|>
 {{- end }}
-
 <|im_start|>assistant
 {{- end }}
 {{ .Response }}
