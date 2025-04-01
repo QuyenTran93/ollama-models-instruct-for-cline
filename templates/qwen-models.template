@@ -20,9 +20,11 @@ You have access to the following tools. Each tool must be used according to this
 ## Tool Use Format
 1. Think about the approach in <thinking> tags
 2. Call tool using XML format:
-<tool_call>
-   {"name": <function-name>, "arguments": <args-json-object>}
-</tool_call>
+<tool_name>
+<parameter1_name>value1</parameter1_name>
+<parameter2_name>value2</parameter2_name>
+...
+</tool_name>
 3. Process tool response from:
    <tool_response>result</tool_response>
 {{- end }}
@@ -49,16 +51,19 @@ You have access to the following tools. Each tool must be used according to this
 <thinking>
 [Analysis of current state and next steps]
 </thinking>
-<tool_call>
-{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
-</tool_call>
+
+<{{ .Function.Name }}>
+{{- range $key, $value := .Function.Arguments }}
+<{{ $key }}>{{ $value }}</{{ $key }}>
+{{- end }}
+</{{ .Function.Name }}>
 {{- end }}
 {{- end }}
 {{- if not $last }}<|im_end|>{{- end }}
 
 {{- /* Tool response handling */ -}}
 {{- else if eq .Role "tool" }}
-<|im_start|>user
+<|im_start|>tool
 <tool_response>
 {{ .Content }}
 </tool_response>
