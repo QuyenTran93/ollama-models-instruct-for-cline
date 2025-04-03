@@ -25,6 +25,14 @@ You have access to the following tools. Each tool must be used according to this
 <parameter2_name>value2</parameter2_name>
 ...
 </tool_name>
+
+For example:
+
+<attempt_completion>
+<result>
+I have completed the task...
+</result>
+</attempt_completion>
 3. Process tool response from:
    <tool_response>result</tool_response>
 {{- end }}
