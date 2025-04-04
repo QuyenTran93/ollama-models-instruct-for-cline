@@ -1,6 +1,7 @@
 TEMPLATE """
 {{- /* Initial system message with core instructions */ -}}
-{{- if .Messages }}
+{{- if .Suffix }}<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
+{{- else if .Messages }}
 {{- if or .System .Tools }}
 <|im_start|>system
 {{- if .System }}
@@ -26,13 +27,22 @@ You have access to the following tools. Each tool must be used according to this
 ...
 </tool_name>
 
-For example:
+For examples:
+
+Example when completed task:
 
 <attempt_completion>
 <result>
 I have completed the task...
 </result>
 </attempt_completion>
+
+Example when ask follow up question:
+
+<ask_followup_question>
+<question>Your question here</question>
+</ask_followup_question>
+
 3. Process tool response from:
    <tool_response>result</tool_response>
 {{- end }}
@@ -71,7 +81,7 @@ I have completed the task...
 
 {{- /* Tool response handling */ -}}
 {{- else if eq .Role "tool" }}
-<|im_start|>tool
+<|im_start|>user
 <tool_response>
 {{ .Content }}
 </tool_response>
@@ -107,7 +117,5 @@ PARAMETER stop <|im_start|>
 PARAMETER stop <|im_end|>
 PARAMETER temperature 0.1
 PARAMETER top_p 0.7
-PARAMETER repetition_penalty 1.1
-PARAMETER max_tokens 2048
-PARAMETER presence_penalty 1.0
-PARAMETER frequency_penalty 1.0
+PARAMETER repeat_penalty 1.1
+#PARAMETER max_tokens 2048
