@@ -1,17 +1,17 @@
 TEMPLATE """
-{{- /* Initial system message with core instructions */ -}}
 {{- if .Suffix }}<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
 {{- else if .Messages }}
-{{- if or .System .Tools }}
-<|im_start|>system
+{{- if or .System .Tools }}<|im_start|>system
 {{- if .System }}
 {{ .System }}
 {{- end }}
-
 {{- if .Tools }}
-# Tools and XML Schema
-You have access to the following tools. Each tool must be used according to this XML schema:
 
+# Tools
+
+You may call one or more functions to assist with the user query.
+
+You are provided with function signatures within <tools></tools> XML tags:
 <tools>
 {{- range .Tools }}
 {"type": "function", "function": {{ .Function }}}
@@ -19,17 +19,14 @@ You have access to the following tools. Each tool must be used according to this
 </tools>
 
 ## Tool Use Format
-1. Think about the approach in <thinking> tags
-2. Call tool using XML format:
+1. Call tool using XML format:
 <tool_name>
 <parameter1_name>value1</parameter1_name>
 <parameter2_name>value2</parameter2_name>
 ...
 </tool_name>
 
-For examples:
-
-Example when completed task:
+For example:
 
 <attempt_completion>
 <result>
@@ -37,80 +34,42 @@ I have completed the task...
 </result>
 </attempt_completion>
 
-Example when ask follow up question:
-
-<ask_followup_question>
-<question>Your question here</question>
-</ask_followup_question>
-
-3. Process tool response from:
+2. Process tool response from:
    <tool_response>result</tool_response>
-{{- end }}
-<|im_end|>
-{{- end }}
-
-{{- /* Message handling loop */ -}}
+{{- end }}<|im_end|>
+{{ end }}
 {{- range $i, $_ := .Messages }}
-{{- $last := eq (len (slice $.Messages $i)) 1 }}
-
-{{- /* User messages */ -}}
-{{- if eq .Role "user" }}
-<|im_start|>user
-{{ .Content }}
-<|im_end|>
-
-{{- /* Assistant messages */ -}}
-{{- else if eq .Role "assistant" }}
-<|im_start|>assistant
-{{- if .Content }}
-{{ .Content }}
+{{- $last := eq (len (slice $.Messages $i)) 1 -}}
+{{- if eq .Role "user" }}<|im_start|>user
+{{ .Content }}<|im_end|>
+{{ else if eq .Role "assistant" }}<|im_start|>assistant
+{{ if .Content }}{{ .Content }}
 {{- else if .ToolCalls }}
 {{- range .ToolCalls }}
-<thinking>
-[Analysis of current state and next steps]
-</thinking>
-
 <{{ .Function.Name }}>
-{{- range $key, $value := .Function.Arguments }}
+{{ range $key, $value := .Function.Arguments }}
 <{{ $key }}>{{ $value }}</{{ $key }}>
-{{- end }}
+{{ end }}
 </{{ .Function.Name }}>
 {{- end }}
 {{- end }}
-{{- if not $last }}<|im_end|>{{- end }}
-
-{{- /* Tool response handling */ -}}
-{{- else if eq .Role "tool" }}
-<|im_start|>user
+{{- if not $last }}<|im_end|>
+{{ end }}
+{{- else if eq .Role "tool" }}<|im_start|>user
 <tool_response>
 {{ .Content }}
-</tool_response>
-<|im_end|>
+</tool_response><|im_end|>
+{{ end }}
+{{- if and (ne .Role "assistant") $last }}<|im_start|>assistant
+{{ end }}
 {{- end }}
-
-{{- /* Prepare for next assistant response if needed */ -}}
-{{- if and (ne .Role "assistant") $last }}
-<|im_start|>assistant
-{{- end }}
-{{- end }}
-
-{{- /* Handle single message case */ -}}
 {{- else }}
-{{- if .System }}
-<|im_start|>system
-{{ .System }}
-<|im_end|>
-{{- end }}
-
-{{- if .Prompt }}
-<|im_start|>user
-{{ .Prompt }}
-<|im_end|>
-{{- end }}
-<|im_start|>assistant
-{{- end }}
-{{ .Response }}
-{{- if .Response }}<|im_end|>{{- end }}"""
+{{- if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ end }}{{ .Response }}{{ if .Response }}<|im_end|>{{ end }}"""
 
 PARAMETER num_ctx 32768
 PARAMETER stop <|im_start|>
