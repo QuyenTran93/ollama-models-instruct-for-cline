@@ -9,9 +9,7 @@ TEMPLATE """
 
 # Tools
 
-You may call one or more functions to assist with the user query.
-
-You are provided with function signatures within <tools></tools> XML tags:
+You have access to the following tools. Each tool must be used according to this XML schema:
 <tools>
 {{- range .Tools }}
 {"type": "function", "function": {{ .Function }}}
